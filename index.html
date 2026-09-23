@@ -192,6 +192,9 @@ let semanaAtualInicio = segundaDaSemana(new Date());
 let dadosSemana = null;
 let reservaSelecionada = { sala: null, data: null, blocos: [] };
 
+function escapeHtml(str){
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 function segundaDaSemana(d){
   const dia = d.getDay(); // 0=domingo
   const diff = (dia === 0 ? -6 : 1) - dia;
@@ -262,14 +265,24 @@ function renderizarSalas(){
     // grade (desktop)
     const grade = document.createElement("table");
     grade.className = "grade";
-    const theadRow = "<tr><th>Bloco</th>" + dias.map(d => "<th>"+d.diaSemana+"<br>"+d.data+"</th>").join("") + "</tr>";
+    const theadRow = "<tr><th>Horário</th>" + dias.map(d => "<th>"+d.diaSemana+"<br>"+d.data+"</th>").join("") + "</tr>";
     let tbody = "";
     const blocos = dias[0].blocos.map(b => b.bloco);
     blocos.forEach((bloco, i) => {
       tbody += "<tr><th>"+bloco+"</th>";
       dias.forEach(dia => {
         const info = dia.blocos[i];
-        tbody += "<td class='slot "+info.status+"' data-dia='"+dia.data+"' data-bloco='"+bloco+"'>"+(info.status==="ocupado"?"—":"")+"</td>";
+        let conteudo = "";
+        let titulo = "";
+        if(info.status === "ocupado"){
+          if(info.professor){
+            conteudo = escapeHtml(info.professor);
+            titulo = info.professor + (info.disciplina ? " — " + info.disciplina : "");
+          } else {
+            conteudo = "—";
+          }
+        }
+        tbody += "<td class='slot "+info.status+"' data-dia='"+dia.data+"' data-bloco='"+bloco+"' title='"+titulo+"'>"+conteudo+"</td>";
       });
       tbody += "</tr>";
     });
@@ -300,11 +313,12 @@ function abrirModalReserva(sala, dia, blocoInicial){
   grid.innerHTML = "";
   dia.blocos.forEach(b => {
     const btn = document.createElement("button");
-    btn.textContent = b.bloco;
     if(b.status === "ocupado"){
+      btn.innerHTML = b.bloco + (b.professor ? "<br><span style='font-size:10px;font-weight:400;'>"+escapeHtml(b.professor)+"</span>" : "");
       btn.classList.add("indisponivel");
       btn.disabled = true;
     } else {
+      btn.textContent = b.bloco;
       btn.onclick = () => {
         const idx = reservaSelecionada.blocos.indexOf(b.bloco);
         if(idx >= 0){ reservaSelecionada.blocos.splice(idx,1); btn.classList.remove("selecionado"); }
