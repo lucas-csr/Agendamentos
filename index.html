@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agendamento dos Laboratórios</title>
+<style>
+  :root{
+    --azul:#1A5FA8; --azul-claro:#E3F0FB; --azul-borda:#B9D8F2;
+    --vermelho:#B83A3A; --vermelho-claro:#F6C9C9; --vermelho-borda:#E5A3A3;
+    --amarelo:#C99A1F; --amarelo-claro:#FBE7AD; --amarelo-borda:#EECF7A;
+    --texto:#222; --texto-suave:#666; --fundo:#F5F7FA; --branco:#fff;
+    --borda:#DADFE5; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--fundo); color:var(--texto);}
+  header{background:var(--azul); color:#fff; padding:18px 16px;}
+  header h1{margin:0; font-size:20px; font-weight:600;}
+  header p{margin:4px 0 0; font-size:13px; color:#cfe3f7;}
+  main{max-width:1100px; margin:0 auto; padding:16px;}
+
+  .weeknav{display:flex; align-items:center; justify-content:center; gap:16px; margin:14px 0;}
+  .weeknav button{background:#fff; border:1px solid var(--azul); color:var(--azul); border-radius:8px; width:36px; height:36px; font-size:16px; cursor:pointer;}
+  .weeknav button:hover{background:var(--azul-claro);}
+  .weeknav span{font-weight:600; font-size:15px; min-width:190px; text-align:center;}
+
+  .legenda{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; font-size:12px; color:var(--texto-suave); margin-bottom:16px;}
+  .legenda span{display:flex; align-items:center; gap:5px;}
+  .dot{width:10px; height:10px; border-radius:2px; display:inline-block;}
+  .dot.livre{background:var(--azul-claro); border:1px solid var(--azul);}
+  .dot.ocupado{background:var(--vermelho-claro); border:1px solid var(--vermelho);}
+  .dot.pendente{background:var(--amarelo-claro); border:1px solid var(--amarelo);}
+
+  .salas{display:grid; grid-template-columns:1fr; gap:18px;}
+  @media(min-width:760px){ .salas{grid-template-columns:1fr 1fr;} }
+
+  .sala-titulo{background:var(--azul); color:#fff; padding:10px 12px; border-radius:10px 10px 0 0; font-weight:600; font-size:14px; text-align:center;}
+  .sala-card{border:1px solid var(--azul); border-top:none; border-radius:0 0 10px 10px; background:#fff; padding:10px;}
+
+  /* Mobile/tablet: lista de dias */
+  .dia-item{padding:10px 12px; border-radius:8px; margin-bottom:8px; cursor:pointer; border:1px solid var(--borda); transition:transform .1s;}
+  .dia-item:hover{transform:translateY(-1px);}
+  .dia-item .data{font-size:13px; font-weight:600;}
+  .dia-item .info{font-size:12px; margin-top:2px;}
+  .dia-item.livre{background:var(--azul-claro); border-color:var(--azul-borda); color:#0c447c;}
+  .dia-item.ocupado{background:var(--vermelho-claro); border-color:var(--vermelho-borda); color:#791f1f; cursor:default;}
+  .dia-item.parcial{background:var(--amarelo-claro); border-color:var(--amarelo-borda); color:#633806;}
+
+  /* Desktop: grade tipo calendário */
+  .grade{display:none; width:100%; border-collapse:collapse; font-size:11px;}
+  .grade th, .grade td{border:1px solid var(--borda); padding:4px; text-align:center;}
+  .grade th{background:#F0F3F7; font-weight:600; font-size:11px;}
+  .grade td.slot{cursor:pointer; height:26px;}
+  .grade td.slot.livre{background:var(--azul-claro);}
+  .grade td.slot.livre:hover{background:#cfe3f7;}
+  .grade td.slot.ocupado{background:var(--vermelho-claro); cursor:default; color:#791f1f;}
+  @media(min-width:900px){
+    .grade{display:table;}
+    .dia-lista{display:none;}
+  }
+
+  .btn-especial{display:block; width:100%; margin-top:18px; padding:11px; background:transparent; border:1.5px solid var(--azul); color:var(--azul); border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;}
+  .btn-especial:hover{background:var(--azul-claro);}
+
+  /* Modal */
+  .overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:16px; z-index:10;}
+  .overlay.aberto{display:flex;}
+  .modal{background:#fff; border-radius:12px; padding:18px; width:100%; max-width:380px; max-height:90vh; overflow-y:auto;}
+  .modal h2{margin:0 0 4px; font-size:16px;}
+  .modal p.sub{margin:0 0 12px; font-size:12px; color:var(--texto-suave);}
+  .blocos-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;}
+  .blocos-grid button{font-size:12px; padding:8px 4px; border:1px solid var(--borda); background:#fff; border-radius:6px; cursor:pointer;}
+  .blocos-grid button.selecionado{border:2px solid var(--azul); background:var(--azul-claro); font-weight:600; color:#0c447c;}
+  .blocos-grid button.indisponivel{background:#eee; color:#999; cursor:not-allowed;}
+  .campo{margin-bottom:10px;}
+  .campo label{display:block; font-size:12px; color:var(--texto-suave); margin-bottom:4px;}
+  .campo input{width:100%; padding:8px; border:1px solid var(--borda); border-radius:6px; font-size:13px;}
+  .erro{color:#C00000; font-size:12px; margin:-4px 0 10px;}
+  .acoes{display:flex; gap:8px; margin-top:6px;}
+  .acoes button{flex:1; padding:10px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--borda); background:#fff;}
+  .acoes button.confirmar{background:var(--azul); color:#fff; border:none;}
+  .contador{font-size:12px; color:var(--azul); margin:-4px 0 10px;}
+  .msg-ok{font-size:13px; color:#0a7a3d; background:#e6f6ec; border:1px solid #bfe8cf; padding:8px; border-radius:6px; margin-bottom:10px;}
+
+  footer{text-align:center; font-size:12px; color:var(--texto-suave); padding:20px 12px 30px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agendamento dos Laboratórios</h1>
+  <p>Colégio Santa Rita</p>
+</header>
+
+<main>
+  <div class="weeknav">
+    <button id="btnSemanaAnterior" aria-label="Semana anterior">&#8592;</button>
+    <span id="labelSemana">carregando...</span>
+    <button id="btnProximaSemana" aria-label="Próxima semana">&#8594;</button>
+  </div>
+
+  <div class="legenda">
+    <span><span class="dot livre"></span>Livre</span>
+    <span><span class="dot ocupado"></span>Ocupado</span>
+    <span><span class="dot pendente"></span>Em análise</span>
+  </div>
+
+  <div class="salas" id="salasContainer">
+    <!-- gerado via JS -->
+  </div>
+
+  <button class="btn-especial" id="btnEspecial">Solicitar horário especial</button>
+</main>
+
+<footer>Dúvidas? Fale com o professor responsável pelos laboratórios.</footer>
+
+<!-- Modal de reserva normal -->
+<div class="overlay" id="overlayReserva">
+  <div class="modal">
+    <h2 id="reservaTitulo">Sala · Data</h2>
+    <p class="sub">Toque para selecionar um ou mais horários livres</p>
+    <div class="blocos-grid" id="blocosGridReserva"></div>
+    <p class="contador" id="contadorReserva">0 horários selecionados</p>
+    <div class="campo">
+      <label for="reservaNome">Seu nome</label>
+      <input type="text" id="reservaNome" placeholder="Professor(a)">
+    </div>
+    <div class="campo">
+      <label for="reservaDisciplina">Disciplina/Turma</label>
+      <input type="text" id="reservaDisciplina" placeholder="Ex: Matemática - 7ºA">
+    </div>
+    <p class="erro" id="reservaErro" style="display:none;"></p>
+    <p class="msg-ok" id="reservaOk" style="display:none;"></p>
+    <div class="acoes">
+      <button id="reservaCancelar">Cancelar</button>
+      <button class="confirmar" id="reservaConfirmar">Confirmar reserva</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de solicitação especial -->
+<div class="overlay" id="overlayEspecial">
+  <div class="modal">
+    <h2>Solicitar horário especial</h2>
+    <p class="sub">Escolha a sala, o dia e os horários ocupados que você gostaria de solicitar. Fica pendente até a aprovação.</p>
+    <div class="campo">
+      <label for="especialSala">Sala</label>
+      <select id="especialSala" style="width:100%; padding:8px; border:1px solid var(--borda); border-radius:6px;">
+        <option value="Laboratório de Informática">Laboratório de Informática</option>
+        <option value="Laboratório Maker">Laboratório Maker</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="especialData">Data</label>
+      <input type="date" id="especialData">
+    </div>
+    <div class="campo">
+      <label>Horários ocupados nesse dia (toque para solicitar)</label>
+      <div class="blocos-grid" id="blocosGridEspecial"></div>
+      <p class="contador" id="contadorEspecial">0 horários selecionados</p>
+    </div>
+    <div class="campo">
+      <label for="especialNome">Seu nome</label>
+      <input type="text" id="especialNome" placeholder="Professor(a)">
+    </div>
+    <div class="campo">
+      <label for="especialDisciplina">Disciplina/Turma</label>
+      <input type="text" id="especialDisciplina" placeholder="Ex: Robótica - 6ºB">
+    </div>
+    <div class="campo">
+      <label for="especialEmail">E-mail de contato</label>
+      <input type="email" id="especialEmail" placeholder="nome@escola.com.br">
+    </div>
+    <p class="erro" id="especialErro" style="display:none;"></p>
+    <p class="msg-ok" id="especialOk" style="display:none;"></p>
+    <div class="acoes">
+      <button id="especialCancelar">Cancelar</button>
+      <button class="confirmar" id="especialConfirmar">Enviar solicitação</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIGURAÇÃO =====
+// Cole aqui a URL do seu Apps Script (Implantar > Nova implantação > App da Web), terminando em /exec
+const API_URL = "https://script.google.com/macros/s/AKfycbweHkdTCp208dr_mxq38Rs7OUoFKuRwYEyod1NZ6zzklC06UTjfsiPcyTcV-vjCs7yt4A/exec";
+
+const SALAS = ["Laboratório de Informática", "Laboratório Maker"];
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+let semanaAtualInicio = segundaDaSemana(new Date());
+let dadosSemana = null;
+let reservaSelecionada = { sala: null, data: null, blocos: [] };
+
+function segundaDaSemana(d){
+  const dia = d.getDay(); // 0=domingo
+  const diff = (dia === 0 ? -6 : 1) - dia;
+  const seg = new Date(d);
+  seg.setDate(d.getDate() + diff);
+  seg.setHours(0,0,0,0);
+  return seg;
+}
+function formatarBR(d){
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  return dd + "/" + mm + "/" + d.getFullYear();
+}
+function formatarLabelSemana(inicio){
+  const fim = new Date(inicio); fim.setDate(fim.getDate()+4);
+  if(inicio.getMonth() === fim.getMonth()){
+    return inicio.getDate() + " a " + fim.getDate() + " de " + MESES[inicio.getMonth()];
+  }
+  return inicio.getDate()+" de "+MESES[inicio.getMonth()]+" a "+fim.getDate()+" de "+MESES[fim.getMonth()];
+}
+
+async function carregarSemana(){
+  document.getElementById("labelSemana").textContent = formatarLabelSemana(semanaAtualInicio);
+  document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
+  try{
+    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio));
+    const resp = await fetch(url);
+    const json = await resp.json();
+    if(!json.ok){ throw new Error(json.message || "Erro ao carregar."); }
+    dadosSemana = json.salas;
+    renderizarSalas();
+  }catch(err){
+    document.getElementById("salasContainer").innerHTML =
+      "<p style='text-align:center;color:#B83A3A;'>Não foi possível carregar os horários. Verifique a conexão e a configuração do API_URL.</p>";
+  }
+}
+
+function renderizarSalas(){
+  const container = document.getElementById("salasContainer");
+  container.innerHTML = "";
+  SALAS.forEach(sala => {
+    const dias = dadosSemana[sala];
+    const wrap = document.createElement("div");
+
+    const titulo = document.createElement("div");
+    titulo.className = "sala-titulo";
+    titulo.textContent = sala;
+    wrap.appendChild(titulo);
+
+    const card = document.createElement("div");
+    card.className = "sala-card";
+
+    // lista (mobile/tablet)
+    const lista = document.createElement("div");
+    lista.className = "dia-lista";
+    dias.forEach(dia => {
+      const livres = dia.blocos.filter(b => b.status === "livre").length;
+      const div = document.createElement("div");
+      div.className = "dia-item " + (livres === 0 ? "ocupado" : "livre");
+      div.innerHTML = "<div class='data'>"+dia.diaSemana+" "+dia.data+"</div><div class='info'>"+livres+" horários livres</div>";
+      if(livres > 0){
+        div.onclick = () => abrirModalReserva(sala, dia);
+      }
+      lista.appendChild(div);
+    });
+    card.appendChild(lista);
+
+    // grade (desktop)
+    const grade = document.createElement("table");
+    grade.className = "grade";
+    const theadRow = "<tr><th>Bloco</th>" + dias.map(d => "<th>"+d.diaSemana+"<br>"+d.data+"</th>").join("") + "</tr>";
+    let tbody = "";
+    const blocos = dias[0].blocos.map(b => b.bloco);
+    blocos.forEach((bloco, i) => {
+      tbody += "<tr><th>"+bloco+"</th>";
+      dias.forEach(dia => {
+        const info = dia.blocos[i];
+        tbody += "<td class='slot "+info.status+"' data-dia='"+dia.data+"' data-bloco='"+bloco+"'>"+(info.status==="ocupado"?"—":"")+"</td>";
+      });
+      tbody += "</tr>";
+    });
+    grade.innerHTML = "<thead>"+theadRow+"</thead><tbody>"+tbody+"</tbody>";
+    grade.querySelectorAll("td.slot.livre").forEach(td => {
+      td.onclick = () => {
+        const diaObj = dias.find(d => d.data === td.dataset.dia);
+        abrirModalReserva(sala, diaObj, td.dataset.bloco);
+      };
+    });
+    card.appendChild(grade);
+
+    wrap.appendChild(card);
+    container.appendChild(wrap);
+  });
+}
+
+// ===== MODAL RESERVA NORMAL =====
+function abrirModalReserva(sala, dia, blocoInicial){
+  reservaSelecionada = { sala, data: dia.data, blocos: [] };
+  document.getElementById("reservaTitulo").textContent = sala + " · " + dia.diaSemana + " " + dia.data;
+  document.getElementById("reservaErro").style.display = "none";
+  document.getElementById("reservaOk").style.display = "none";
+  document.getElementById("reservaNome").value = "";
+  document.getElementById("reservaDisciplina").value = "";
+
+  const grid = document.getElementById("blocosGridReserva");
+  grid.innerHTML = "";
+  dia.blocos.forEach(b => {
+    const btn = document.createElement("button");
+    btn.textContent = b.bloco;
+    if(b.status === "ocupado"){
+      btn.classList.add("indisponivel");
+      btn.disabled = true;
+    } else {
+      btn.onclick = () => {
+        const idx = reservaSelecionada.blocos.indexOf(b.bloco);
+        if(idx >= 0){ reservaSelecionada.blocos.splice(idx,1); btn.classList.remove("selecionado"); }
+        else { reservaSelecionada.blocos.push(b.bloco); btn.classList.add("selecionado"); }
+        atualizarContador();
+      };
+      if(blocoInicial && b.bloco === blocoInicial){ btn.click(); }
+    }
+    grid.appendChild(btn);
+  });
+  atualizarContador();
+  document.getElementById("overlayReserva").classList.add("aberto");
+}
+function atualizarContador(){
+  document.getElementById("contadorReserva").textContent = reservaSelecionada.blocos.length + " horários selecionados";
+}
+document.getElementById("reservaCancelar").onclick = () => document.getElementById("overlayReserva").classList.remove("aberto");
+
+document.getElementById("reservaConfirmar").onclick = async () => {
+  const nome = document.getElementById("reservaNome").value.trim();
+  const disciplina = document.getElementById("reservaDisciplina").value.trim();
+  const erroEl = document.getElementById("reservaErro");
+  erroEl.style.display = "none";
+  if(reservaSelecionada.blocos.length === 0){ erroEl.textContent = "Selecione ao menos um horário."; erroEl.style.display="block"; return; }
+  if(!nome){ erroEl.textContent = "Informe seu nome."; erroEl.style.display="block"; return; }
+  if(!disciplina){ erroEl.textContent = "Informe a disciplina/turma."; erroEl.style.display="block"; return; }
+
+  try{
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "reservar", sala: reservaSelecionada.sala, data: reservaSelecionada.data,
+        blocos: reservaSelecionada.blocos, professor: nome, disciplina: disciplina
+      })
+    });
+    const json = await resp.json();
+    if(!json.ok){ erroEl.textContent = json.message || "Não foi possível reservar."; erroEl.style.display="block"; return; }
+    document.getElementById("reservaOk").textContent = "Reserva confirmada!";
+    document.getElementById("reservaOk").style.display = "block";
+    setTimeout(() => { document.getElementById("overlayReserva").classList.remove("aberto"); carregarSemana(); }, 1200);
+  }catch(err){
+    erroEl.textContent = "Erro de conexão. Tente novamente."; erroEl.style.display="block";
+  }
+};
+
+// ===== MODAL SOLICITAÇÃO ESPECIAL =====
+let especialSelecionados = [];
+document.getElementById("btnEspecial").onclick = () => {
+  document.getElementById("especialErro").style.display = "none";
+  document.getElementById("especialOk").style.display = "none";
+  document.getElementById("especialData").value = "";
+  document.getElementById("blocosGridEspecial").innerHTML = "<p style='font-size:12px;color:#888;'>Escolha a sala e a data acima para ver os horários ocupados.</p>";
+  especialSelecionados = [];
+  document.getElementById("overlayEspecial").classList.add("aberto");
+};
+document.getElementById("especialCancelar").onclick = () => document.getElementById("overlayEspecial").classList.remove("aberto");
+
+async function carregarBlocosOcupadosEspecial(){
+  const salaSel = document.getElementById("especialSala").value;
+  const dataInput = document.getElementById("especialData").value; // yyyy-mm-dd
+  const grid = document.getElementById("blocosGridEspecial");
+  especialSelecionados = [];
+  atualizarContadorEspecial();
+  if(!dataInput){ return; }
+  const [y,m,d] = dataInput.split("-");
+  const dataBR = d+"/"+m+"/"+y;
+  const inicioDaSemana = segundaDaSemana(new Date(Number(y), Number(m)-1, Number(d)));
+
+  grid.innerHTML = "<p style='font-size:12px;color:#888;'>Carregando...</p>";
+  try{
+    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(inicioDaSemana));
+    const resp = await fetch(url);
+    const json = await resp.json();
+    const diasDaSala = json.salas[salaSel];
+    const diaAlvo = diasDaSala.find(dd => dd.data === dataBR);
+    grid.innerHTML = "";
+    if(!diaAlvo){ grid.innerHTML = "<p style='font-size:12px;color:#888;'>Escolha uma data de segunda a sexta.</p>"; return; }
+    const ocupados = diaAlvo.blocos.filter(b => b.status === "ocupado");
+    if(ocupados.length === 0){ grid.innerHTML = "<p style='font-size:12px;color:#888;'>Não há horários ocupados nesse dia — reserve pelo fluxo normal.</p>"; return; }
+    ocupados.forEach(b => {
+      const btn = document.createElement("button");
+      btn.textContent = b.bloco;
+      btn.onclick = () => {
+        const idx = especialSelecionados.indexOf(b.bloco);
+        if(idx >= 0){ especialSelecionados.splice(idx,1); btn.classList.remove("selecionado"); }
+        else { especialSelecionados.push(b.bloco); btn.classList.add("selecionado"); }
+        atualizarContadorEspecial();
+      };
+      grid.appendChild(btn);
+    });
+  }catch(err){
+    grid.innerHTML = "<p style='font-size:12px;color:#B83A3A;'>Erro ao carregar horários.</p>";
+  }
+}
+function atualizarContadorEspecial(){
+  document.getElementById("contadorEspecial").textContent = especialSelecionados.length + " horários selecionados";
+}
+document.getElementById("especialSala").onchange = carregarBlocosOcupadosEspecial;
+document.getElementById("especialData").onchange = carregarBlocosOcupadosEspecial;
+
+document.getElementById("especialConfirmar").onclick = async () => {
+  const sala = document.getElementById("especialSala").value;
+  const dataInput = document.getElementById("especialData").value;
+  const nome = document.getElementById("especialNome").value.trim();
+  const disciplina = document.getElementById("especialDisciplina").value.trim();
+  const email = document.getElementById("especialEmail").value.trim();
+  const erroEl = document.getElementById("especialErro");
+  erroEl.style.display = "none";
+
+  if(!dataInput){ erroEl.textContent = "Escolha uma data."; erroEl.style.display="block"; return; }
+  if(especialSelecionados.length === 0){ erroEl.textContent = "Selecione ao menos um horário."; erroEl.style.display="block"; return; }
+  if(!nome || !disciplina || !email){ erroEl.textContent = "Preencha nome, disciplina e e-mail."; erroEl.style.display="block"; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ erroEl.textContent = "Informe um e-mail válido."; erroEl.style.display="block"; return; }
+
+  const [y,m,d] = dataInput.split("-");
+  const dataBR = d+"/"+m+"/"+y;
+
+  try{
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "solicitar", sala, data: dataBR, blocos: especialSelecionados,
+        professor: nome, disciplina: disciplina, email: email
+      })
+    });
+    const json = await resp.json();
+    if(!json.ok){ erroEl.textContent = json.message || "Não foi possível enviar."; erroEl.style.display="block"; return; }
+    document.getElementById("especialOk").textContent = "Solicitação enviada! Você será avisado quando for avaliada.";
+    document.getElementById("especialOk").style.display = "block";
+    setTimeout(() => { document.getElementById("overlayEspecial").classList.remove("aberto"); }, 1800);
+  }catch(err){
+    erroEl.textContent = "Erro de conexão. Tente novamente."; erroEl.style.display="block";
+  }
+};
+
+// ===== NAVEGAÇÃO DE SEMANA =====
+document.getElementById("btnSemanaAnterior").onclick = () => {
+  semanaAtualInicio.setDate(semanaAtualInicio.getDate() - 7);
+  carregarSemana();
+};
+document.getElementById("btnProximaSemana").onclick = () => {
+  semanaAtualInicio.setDate(semanaAtualInicio.getDate() + 7);
+  carregarSemana();
+};
+
+carregarSemana();
+</script>
+</body>
+</html>
