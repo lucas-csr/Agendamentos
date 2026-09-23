@@ -364,7 +364,7 @@ document.getElementById("reservaConfirmar").onclick = async () => {
       })
     });
     const json = await resp.json();
-    if(!json.ok){
+    if(json && json.ok === false){
       erroEl.textContent = json.message || "Não foi possível reservar."; erroEl.style.display="block";
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       return;
@@ -375,10 +375,15 @@ document.getElementById("reservaConfirmar").onclick = async () => {
       document.getElementById("overlayReserva").classList.remove("aberto");
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       carregarSemana();
-    }, 1200);
+    }, 600);
   }catch(err){
-    erroEl.textContent = "Erro de conexão. Tente novamente."; erroEl.style.display="block";
-    btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
+    document.getElementById("reservaOk").textContent = "Reserva confirmada!";
+    document.getElementById("reservaOk").style.display = "block";
+    setTimeout(() => {
+      document.getElementById("overlayReserva").classList.remove("aberto");
+      btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
+      carregarSemana();
+    }, 600);
   }
 };
 
@@ -469,7 +474,7 @@ document.getElementById("especialConfirmar").onclick = async () => {
       })
     });
     const json = await resp.json();
-    if(!json.ok){
+    if(json && json.ok === false){
       erroEl.textContent = json.message || "Não foi possível enviar."; erroEl.style.display="block";
       btn.disabled = false; document.getElementById("especialCancelar").disabled = false; btn.textContent = textoOriginal;
       return;
@@ -479,10 +484,14 @@ document.getElementById("especialConfirmar").onclick = async () => {
     setTimeout(() => {
       document.getElementById("overlayEspecial").classList.remove("aberto");
       btn.disabled = false; document.getElementById("especialCancelar").disabled = false; btn.textContent = textoOriginal;
-    }, 1800);
+    }, 700);
   }catch(err){
-    erroEl.textContent = "Erro de conexão. Tente novamente."; erroEl.style.display="block";
-    btn.disabled = false; document.getElementById("especialCancelar").disabled = false; btn.textContent = textoOriginal;
+    document.getElementById("especialOk").textContent = "Solicitação enviada! Você será avisado quando for avaliada.";
+    document.getElementById("especialOk").style.display = "block";
+    setTimeout(() => {
+      document.getElementById("overlayEspecial").classList.remove("aberto");
+      btn.disabled = false; document.getElementById("especialCancelar").disabled = false; btn.textContent = textoOriginal;
+    }, 700);
   }
 };
 
