@@ -254,9 +254,11 @@ function formatarLabelSemana(inicio){
   return inicio.getDate()+" de "+MESES[inicio.getMonth()]+" a "+fim.getDate()+" de "+MESES[fim.getMonth()];
 }
 
-async function carregarSemana(){
+async function carregarSemana(silencioso){
   document.getElementById("labelSemana").textContent = formatarLabelSemana(semanaAtualInicio);
-  document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
+  if(!silencioso){
+    document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
+  }
   try{
     const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio));
     const resp = await fetch(url);
@@ -265,8 +267,11 @@ async function carregarSemana(){
     dadosSemana = json.salas;
     renderizarSalas();
   }catch(err){
-    document.getElementById("salasContainer").innerHTML =
-      "<p style='text-align:center;color:#B83A3A;'>Não foi possível carregar os horários. Verifique a conexão e a configuração do API_URL.</p>";
+    if(!silencioso){
+      document.getElementById("salasContainer").innerHTML =
+        "<p style='text-align:center;color:#B83A3A;'>Não foi possível carregar os horários. Verifique a conexão e a configuração do API_URL.</p>";
+    }
+    // em atualização silenciosa, um erro passageiro não deve apagar a agenda que já estava na tela
   }
 }
 
@@ -657,8 +662,8 @@ carregarSemana();
 // pra refletir reservas feitas em outro aparelho. Pula se algum pop-up estiver aberto.
 setInterval(() => {
   const algumModalAberto = document.querySelector(".overlay.aberto") !== null;
-  if(!algumModalAberto){ carregarSemana(); }
-}, 30000);
+  if(!algumModalAberto){ carregarSemana(true); }
+}, 60000);
 </script>
 </body>
 </html>
