@@ -46,6 +46,7 @@
   .dia-item.ocupado{background:var(--vermelho-claro); border-color:var(--vermelho); color:#5c1414; cursor:default;}
   .dia-item.parcial{background:var(--amarelo-claro); border-color:var(--amarelo); color:#633806;}
   .dia-item.hoje{border-width:3px; box-shadow:0 3px 10px rgba(26,95,168,.3);}
+  .dia-item.passado{background:#EDEDED; border-color:#CCC; color:#888; cursor:default; font-weight:600;}
 
   /* Desktop: grade tipo calendário */
   .grade{display:none; width:100%; border-collapse:collapse; font-size:14px; animation:surgir .25s ease;}
@@ -56,6 +57,7 @@
   .grade td.slot.livre{background:var(--azul-claro); color:#0c447c;}
   .grade td.slot.livre:hover{background:#b9d8f2;}
   .grade td.slot.ocupado{background:var(--vermelho-claro); cursor:default; color:#5c1414;}
+  .grade td.slot.passado{background:#EDEDED; cursor:default; color:#999;}
   @media(min-width:900px){
     .grade{display:table;}
     .dia-lista{display:none;}
@@ -193,7 +195,7 @@
 <script>
 // ===== CONFIGURAÇÃO =====
 // Cole aqui a URL do seu Apps Script (Implantar > Nova implantação > App da Web), terminando em /exec
-const API_URL = "https://script.google.com/macros/s/AKfycbwrs9HPJRHQHqgwwhie2uxHjc4sq7EqFDy49Lis6LE-OVZOEwEFSeKrXoQnC0sg9fZnug/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzE4fE7QczZA79q5e5J2btojqdSSJfOBBDJAVFB4irAMb-SAFtl0RwPWdfcQlyttFo-PA/exec";
 
 const SALAS = ["Laboratório de Informática", "Laboratório Maker"];
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -204,6 +206,21 @@ let reservaSelecionada = { sala: null, data: null, blocos: [] };
 
 function escapeHtml(str){
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function paraDate(dataStr){
+  const [d,m,y] = dataStr.split("/").map(Number);
+  return new Date(y, m-1, d);
+}
+function diaJaPassou(dataStr){
+  const hoje = paraDate(formatarBR(new Date()));
+  return paraDate(dataStr).getTime() < hoje.getTime();
+}
+function blocoJaPassou(dataStr, bloco){
+  const inicio = bloco.split("-")[0];
+  const [h,mi] = inicio.split(":").map(Number);
+  const dt = paraDate(dataStr);
+  dt.setHours(h, mi, 0, 0);
+  return dt.getTime() < Date.now();
 }
 function segundaDaSemana(d){
   const dia = d.getDay(); // 0=domingo
@@ -262,15 +279,21 @@ function renderizarSalas(){
     lista.className = "dia-lista";
     const hojeStr = formatarBR(new Date());
     dias.forEach(dia => {
-      const livres = dia.blocos.filter(b => b.status === "livre").length;
+      const passou = diaJaPassou(dia.data);
+      const livres = dia.blocos.filter(b => b.status === "livre" && !blocoJaPassou(dia.data, b.bloco)).length;
       const ehHoje = dia.data === hojeStr;
       const div = document.createElement("div");
-      div.className = "dia-item " + (livres === 0 ? "ocupado" : "livre") + (ehHoje ? " hoje" : "");
-      const selo = ehHoje ? "<span class='badge-hoje'>HOJE</span>" : "";
-      const marcador = livres === 0 ? "✗ ocupado" : "✓ "+livres+" livres";
-      div.innerHTML = "<span class='data'>"+selo+dia.diaSemana+" "+dia.data+"</span><span>"+marcador+"</span>";
-      if(livres > 0){
-        div.onclick = () => abrirModalReserva(sala, dia);
+      if(passou){
+        div.className = "dia-item passado";
+        div.innerHTML = "<span class='data'>"+dia.diaSemana+" "+dia.data+"</span><span>Data já passou</span>";
+      } else {
+        div.className = "dia-item " + (livres === 0 ? "ocupado" : "livre") + (ehHoje ? " hoje" : "");
+        const selo = ehHoje ? "<span class='badge-hoje'>HOJE</span>" : "";
+        const marcador = livres === 0 ? "✗ ocupado" : "✓ "+livres+" livres";
+        div.innerHTML = "<span class='data'>"+selo+dia.diaSemana+" "+dia.data+"</span><span>"+marcador+"</span>";
+        if(livres > 0){
+          div.onclick = () => abrirModalReserva(sala, dia);
+        }
       }
       lista.appendChild(div);
     });
@@ -287,9 +310,14 @@ function renderizarSalas(){
       tbody += "<tr><th>"+bloco+"</th>";
       dias.forEach(dia => {
         const info = dia.blocos[i];
+        const passou = blocoJaPassou(dia.data, bloco);
+        let statusFinal = info.status;
         let conteudo = "";
         let titulo = "";
-        if(info.status === "ocupado"){
+        if(passou && info.status === "livre"){
+          statusFinal = "passado";
+          conteudo = "—";
+        } else if(info.status === "ocupado"){
           if(info.professor){
             conteudo = escapeHtml(info.professor);
             titulo = info.professor + (info.disciplina ? " — " + info.disciplina : "");
@@ -297,7 +325,7 @@ function renderizarSalas(){
             conteudo = "—";
           }
         }
-        tbody += "<td class='slot "+info.status+"' data-dia='"+dia.data+"' data-bloco='"+bloco+"' title='"+titulo+"'>"+conteudo+"</td>";
+        tbody += "<td class='slot "+statusFinal+"' data-dia='"+dia.data+"' data-bloco='"+bloco+"' title='"+titulo+"'>"+conteudo+"</td>";
       });
       tbody += "</tr>";
     });
@@ -329,8 +357,9 @@ function abrirModalReserva(sala, dia, blocoInicial){
   grid.innerHTML = "";
   dia.blocos.forEach(b => {
     const btn = document.createElement("button");
-    if(b.status === "ocupado"){
-      btn.innerHTML = b.bloco + (b.professor ? "<br><span style='font-size:10px;font-weight:400;'>"+escapeHtml(b.professor)+"</span>" : "");
+    const passou = b.status === "livre" && blocoJaPassou(dia.data, b.bloco);
+    if(b.status === "ocupado" || passou){
+      btn.innerHTML = b.bloco + (b.professor ? "<br><span style='font-size:10px;font-weight:400;'>"+escapeHtml(b.professor)+"</span>" : (passou ? "<br><span style='font-size:10px;font-weight:400;'>Passou</span>" : ""));
       btn.classList.add("indisponivel");
       btn.disabled = true;
     } else {
