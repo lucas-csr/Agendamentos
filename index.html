@@ -7,98 +7,109 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <style>
   :root{
-    --azul:#1A5FA8; --azul-claro:#D3E8FA; --azul-borda:#1A5FA8;
-    --vermelho:#A83232; --vermelho-claro:#F6C2C2; --vermelho-borda:#A83232;
+    --azul:#1A5FA8; --azul-escuro:#164E8A; --azul-claro:#D3E8FA; --azul-suave:#F0F7FF; --azul-borda:#1A5FA8;
+    --vermelho:#A83232; --vermelho-claro:#F6C2C2; --vermelho-suave:#FDF1F1; --vermelho-borda:#A83232;
     --amarelo:#C99A1F; --amarelo-claro:#FBE7AD; --amarelo-borda:#C99A1F;
     --texto:#1a1a1a; --texto-suave:#555; --fundo:#F5F7FA; --branco:#fff;
-    --borda:#C7CDD5; --radius:10px;
+    --borda:#E4E8EE; --radius:12px;
   }
   *{box-sizing:border-box;}
-  body{margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--fundo); color:var(--texto); font-size:16px; line-height:1.5;}
-  header{background:var(--azul); color:#fff; padding:22px 18px;}
-  header h1{margin:0; font-size:24px; font-weight:700;}
-  header p{margin:6px 0 0; font-size:15px; color:#e3f0fb;}
-  main{max-width:1100px; margin:0 auto; padding:18px;}
+  body{margin:0; font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto); font-size:16px; line-height:1.5;}
+  header{background:linear-gradient(135deg, var(--azul), var(--azul-escuro)); color:#fff; padding:13px 18px; box-shadow:0 4px 14px rgba(26,95,168,.22); display:flex; align-items:center; justify-content:center;}
+  .header-conteudo{max-width:1450px; width:100%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  header h1{margin:0; font-size:17px; font-weight:700; white-space:nowrap;}
+  header p{margin:1px 0 0; font-size:11px; color:#bcd6ef;}
+  .btn-data{flex-shrink:0; width:38px; height:38px; padding:0; border-radius:10px; border:none; background:rgba(255,255,255,.16); color:#fff; font-size:16px; cursor:pointer;}
+  .btn-data:hover{background:rgba(255,255,255,.28);}
+  main{max-width:1450px; margin:0 auto; padding:18px;}
 
-  .weeknav{display:flex; align-items:center; justify-content:center; gap:18px; margin:18px 0;}
-  .weeknav button{background:#fff; border:2px solid var(--azul); color:var(--azul); border-radius:10px; width:48px; height:48px; font-size:20px; cursor:pointer;}
+  .weeknav{display:flex; align-items:center; justify-content:center; gap:18px; margin:16px 0;}
+  .weeknav button{background:#EEF3F9; border:none; color:var(--azul); border-radius:10px; width:44px; height:44px; font-size:18px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.08);}
   .weeknav button:hover{background:var(--azul-claro);}
-  .weeknav span{font-weight:700; font-size:18px; min-width:210px; text-align:center;}
+  .weeknav span{font-weight:700; font-size:17px; min-width:200px; text-align:center;}
 
-  .legenda{display:flex; gap:18px; justify-content:center; flex-wrap:wrap; font-size:15px; font-weight:600; color:var(--texto-suave); margin-bottom:20px;}
+  .legenda{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; font-size:13px; font-weight:600; color:var(--texto-suave); margin-bottom:18px;}
   .legenda span{display:flex; align-items:center; gap:6px;}
-  .dot{width:14px; height:14px; border-radius:3px; display:inline-block;}
-  .dot.livre{background:var(--azul-claro); border:2px solid var(--azul);}
-  .dot.ocupado{background:var(--vermelho-claro); border:2px solid var(--vermelho);}
-  .dot.pendente{background:var(--amarelo-claro); border:2px solid var(--amarelo);}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .dot.livre{background:var(--azul);}
+  .dot.ocupado{background:var(--vermelho);}
+  .dot.pendente{background:var(--amarelo);}
 
-  .salas{display:grid; grid-template-columns:1fr; gap:22px;}
+  .salas{display:grid; grid-template-columns:1fr; gap:20px;}
   @media(min-width:760px){ .salas{grid-template-columns:1fr 1fr;} }
 
-  .sala-titulo{background:var(--azul); color:#fff; padding:14px 12px; border-radius:12px 12px 0 0; font-weight:700; font-size:18px; text-align:center;}
-  .sala-card{border:2px solid var(--azul); border-top:none; border-radius:0 0 12px 12px; background:#fff; padding:12px;}
+  .sala-titulo{background:var(--azul); color:#fff; padding:12px 14px; border-radius:14px 14px 0 0; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .sala-card{border:1px solid #eef1f5; border-top:none; border-radius:0 0 14px 14px; background:#fff; padding:10px; box-shadow:0 4px 16px rgba(26,95,168,.10);}
 
   /* Mobile/tablet: lista de dias */
-  .dia-item{padding:16px 14px; border-radius:10px; margin-bottom:10px; cursor:pointer; border:2px solid var(--borda); display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:700; transition:transform .15s, box-shadow .15s, opacity .2s; animation:surgir .25s ease;}
-  .dia-item:hover{transform:translateY(-2px);}
+  .dia-item{padding:12px 14px; border-radius:10px; margin-bottom:8px; cursor:pointer; border:none; display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:600; transition:transform .15s, box-shadow .15s; animation:surgir .25s ease; box-shadow:inset 0 0 0 1px var(--borda);}
+  .dia-item:hover{transform:translateY(-1px);}
   .dia-item .data{display:flex; align-items:center; gap:8px;}
-  .badge-hoje{background:var(--azul); color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.5px;}
-  .dia-item.livre{background:var(--azul-claro); border-color:var(--azul); color:#0c447c;}
-  .dia-item.ocupado{background:var(--vermelho-claro); border-color:var(--vermelho); color:#5c1414; cursor:default;}
-  .dia-item.parcial{background:var(--amarelo-claro); border-color:var(--amarelo); color:#633806;}
-  .dia-item.hoje{border-width:3px; box-shadow:0 3px 10px rgba(26,95,168,.3);}
-  .dia-item.passado{background:#EDEDED; border-color:#CCC; color:#888; cursor:default; font-weight:600;}
+  .badge-hoje{background:var(--azul); color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; letter-spacing:.5px;}
+  .status-pill{font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; color:#fff;}
+  .dia-item.livre{background:var(--azul-suave); color:#0c447c; box-shadow:inset 0 0 0 1px #DCEBFA;}
+  .dia-item.livre .status-pill{background:var(--azul);}
+  .dia-item.ocupado{background:var(--vermelho-suave); color:#7a2020; cursor:default; box-shadow:inset 0 0 0 1px #F5D9D9;}
+  .dia-item.ocupado .status-pill{background:var(--vermelho);}
+  .dia-item.hoje{box-shadow:inset 0 0 0 2px var(--azul); }
+  .dia-item.passado{background:#F1F1F1; color:#999; cursor:default; font-weight:600;}
+  .dia-item.passado .status-pill{background:#bbb;}
 
   /* Desktop: grade tipo calendário */
-  .grade{display:none; width:100%; border-collapse:collapse; font-size:14px; animation:surgir .25s ease;}
-  .grade th, .grade td{border:1px solid var(--borda); padding:8px 6px; text-align:center;}
-  .grade th{background:#EAF0F7; font-weight:700; font-size:14px;}
+  .grade{display:none; width:100%; border-collapse:separate; border-spacing:0; font-size:13px; animation:surgir .25s ease;}
+  .grade th, .grade td{border-bottom:1px solid var(--borda); padding:9px 6px; text-align:center;}
+  .grade th{background:#F5F8FC; font-weight:700; font-size:13px;}
   .grade th.hoje{background:var(--azul); color:#fff;}
   .grade td.slot{cursor:pointer; height:34px; font-weight:600;}
-  .grade td.slot.livre{background:var(--azul-claro); color:#0c447c;}
-  .grade td.slot.livre:hover{background:#b9d8f2;}
-  .grade td.slot.ocupado{background:var(--vermelho-claro); cursor:default; color:#5c1414;}
-  .grade td.slot.passado{background:#EDEDED; cursor:default; color:#999;}
+  .grade td.slot.livre{background:var(--azul-suave); color:#0c447c;}
+  .grade td.slot.livre:hover{background:var(--azul-claro);}
+  .grade td.slot.ocupado{background:var(--vermelho-suave); cursor:default; color:#7a2020;}
+  .grade td.slot.passado{background:#F1F1F1; cursor:default; color:#999;}
   @media(min-width:900px){
     .grade{display:table;}
     .dia-lista{display:none;}
   }
 
-  .btn-especial{display:block; width:100%; margin-top:22px; padding:16px; background:transparent; border:2.5px solid var(--azul); color:var(--azul); border-radius:12px; font-size:17px; font-weight:700; cursor:pointer;}
-  .btn-especial:hover{background:var(--azul-claro);}
+  .btn-especial{display:block; width:100%; margin-top:20px; padding:14px; background:#fff; box-shadow:0 0 0 2px var(--azul) inset; color:var(--azul); border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer;}
+  .btn-especial:hover{background:var(--azul-suave);}
 
   /* Modal */
   .overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; padding:16px; z-index:10;}
   .overlay.aberto{display:flex;}
-  .modal{background:#fff; border-radius:14px; padding:22px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; animation:surgir .2s ease;}
-  .modal h2{margin:0 0 6px; font-size:19px; font-weight:700;}
-  .modal p.sub{margin:0 0 16px; font-size:14px; color:var(--texto-suave);}
-  .blocos-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;}
-  .blocos-grid button{font-size:15px; font-weight:600; padding:14px 6px; min-height:52px; border:2px solid var(--borda); background:#fff; border-radius:8px; cursor:pointer;}
-  .blocos-grid button.selecionado{border:3px solid var(--azul); background:var(--azul-claro); font-weight:700; color:#0c447c;}
-  .blocos-grid button.indisponivel{background:#eee; color:#888; cursor:not-allowed; border-color:#ddd;}
-  .campo{margin-bottom:14px;}
-  .campo label{display:block; font-size:14px; font-weight:600; color:var(--texto-suave); margin-bottom:5px;}
-  .campo input, .campo select{width:100%; padding:13px; border:2px solid var(--borda); border-radius:8px; font-size:16px;}
-  .erro{color:#C00000; font-size:14px; font-weight:600; margin:-6px 0 12px;}
-  .acoes{display:flex; gap:10px; margin-top:8px;}
-  .acoes button{flex:1; padding:15px; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; border:2px solid var(--borda); background:#fff; min-height:52px;}
-  .acoes button.confirmar{background:var(--azul); color:#fff; border:none;}
+  .modal{background:#fff; border-radius:16px; padding:16px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto; animation:surgir .2s ease; box-shadow:0 12px 40px rgba(0,0,0,.2);}
+  .modal h2{margin:0 0 3px; font-size:17px; font-weight:700;}
+  .modal p.sub{margin:0 0 10px; font-size:13px; color:var(--texto-suave);}
+  .blocos-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;}
+  .blocos-grid button{font-size:14px; font-weight:600; padding:11px 6px; min-height:46px; border:1.5px solid var(--borda); background:#fff; border-radius:9px; cursor:pointer;}
+  .blocos-grid button.selecionado{border:2.5px solid var(--azul); background:var(--azul-claro); font-weight:700; color:#0c447c;}
+  .blocos-grid button.indisponivel{background:#f1f1f1; color:#888; cursor:not-allowed; border-color:#e5e5e5;}
+  .campo{margin-bottom:10px;}
+  .campo label{display:block; font-size:13px; font-weight:600; color:var(--texto-suave); margin-bottom:4px;}
+  .campo input, .campo select{width:100%; padding:11px; border:1.5px solid var(--borda); border-radius:9px; font-size:15px;}
+  .erro{color:#C00000; font-size:13px; font-weight:600; margin:-4px 0 8px;}
+  .acoes{display:flex; gap:8px; margin-top:4px;}
+  .acoes button{flex:1; padding:13px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; border:1.5px solid var(--borda); background:#fff; min-height:48px;}
+  .acoes button.confirmar{background:var(--azul); color:#fff; border:none; box-shadow:0 3px 10px rgba(26,95,168,.3);}
   .acoes button:disabled{opacity:.7; cursor:not-allowed;}
   .spinner{display:inline-block; width:15px; height:15px; border:2px solid rgba(255,255,255,.5); border-top-color:#fff; border-radius:50%; animation:girar .7s linear infinite; vertical-align:-3px; margin-right:7px;}
   @keyframes girar{ to{ transform:rotate(360deg); } }
   @keyframes surgir{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:translateY(0); } }
-  .contador{font-size:14px; font-weight:700; color:var(--azul); margin:-6px 0 12px;}
-  .msg-ok{font-size:15px; font-weight:600; color:#0a7a3d; background:#e6f6ec; border:2px solid #bfe8cf; padding:12px; border-radius:8px; margin-bottom:12px;}
+  .contador{font-size:13px; font-weight:700; color:var(--azul); margin:-4px 0 8px;}
+  .msg-ok{font-size:14px; font-weight:600; color:#0a7a3d; background:#e6f6ec; border:1.5px solid #bfe8cf; padding:10px; border-radius:9px; margin-bottom:10px;}
 
-  footer{text-align:center; font-size:14px; color:var(--texto-suave); padding:24px 12px 32px;}
+  footer{text-align:center; font-size:13px; color:var(--texto-suave); padding:22px 12px 30px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Agendamento dos Laboratórios</h1>
-  <p>Colégio Santa Rita de Cássia</p>
+  <div class="header-conteudo">
+    <div>
+      <h1>Agendamento dos Laboratórios</h1>
+      <p>Colégio Santa Rita</p>
+    </div>
+    <button class="btn-data" id="btnIrParaData" aria-label="Ir para uma data específica">📅</button>
+  </div>
 </header>
 
 <main>
@@ -189,6 +200,20 @@
     <div class="acoes">
       <button id="especialCancelar">Cancelar</button>
       <button class="confirmar" id="especialConfirmar">Enviar solicitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal "ir para data" -->
+<div class="overlay" id="overlayData">
+  <div class="modal" style="max-width:340px;">
+    <h2>Ir para uma data específica</h2>
+    <p class="sub">Escolha uma data — a agenda já pula pra semana dela</p>
+    <div class="campo">
+      <input type="date" id="inputIrParaData">
+    </div>
+    <div class="acoes">
+      <button id="dataCancelar">Cancelar</button>
     </div>
   </div>
 </div>
@@ -302,12 +327,12 @@ function renderizarSalas(){
       const div = document.createElement("div");
       if(passou){
         div.className = "dia-item passado";
-        div.innerHTML = "<span class='data'>"+dia.diaSemana+" "+dia.data+"</span><span>Data já passou</span>";
+        div.innerHTML = "<span class='data'>"+dia.diaSemana+" "+dia.data+"</span><span class='status-pill'>passou</span>";
       } else {
         div.className = "dia-item " + (livres === 0 ? "ocupado" : "livre") + (ehHoje ? " hoje" : "");
         const selo = ehHoje ? "<span class='badge-hoje'>HOJE</span>" : "";
         const marcador = livres === 0 ? "✗ ocupado" : "✓ "+livres+" livres";
-        div.innerHTML = "<span class='data'>"+selo+dia.diaSemana+" "+dia.data+"</span><span>"+marcador+"</span>";
+        div.innerHTML = "<span class='data'>"+selo+dia.diaSemana+" "+dia.data+"</span><span class='status-pill'>"+marcador+"</span>";
         if(livres > 0){
           div.onclick = () => abrirModalReserva(sala, dia);
         }
@@ -580,6 +605,20 @@ document.getElementById("especialConfirmar").onclick = async () => {
 };
 
 // ===== NAVEGAÇÃO DE SEMANA =====
+document.getElementById("btnIrParaData").onclick = () => {
+  document.getElementById("inputIrParaData").value = "";
+  document.getElementById("overlayData").classList.add("aberto");
+};
+document.getElementById("dataCancelar").onclick = () => document.getElementById("overlayData").classList.remove("aberto");
+document.getElementById("inputIrParaData").onchange = (ev) => {
+  const valor = ev.target.value; // yyyy-mm-dd
+  if(!valor) return;
+  const [y,m,d] = valor.split("-").map(Number);
+  semanaAtualInicio = segundaDaSemana(new Date(y, m-1, d));
+  document.getElementById("overlayData").classList.remove("aberto");
+  carregarSemana();
+};
+
 document.getElementById("btnSemanaAnterior").onclick = () => {
   semanaAtualInicio.setDate(semanaAtualInicio.getDate() - 7);
   carregarSemana();
