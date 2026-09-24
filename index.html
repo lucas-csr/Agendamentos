@@ -192,10 +192,20 @@
   </div>
 </div>
 
+<!-- Modal de cancelamento (aberto via link do e-mail de confirmação) -->
+<div class="overlay" id="overlayCancelamento">
+  <div class="modal">
+    <h2>Cancelar reserva</h2>
+    <div id="cancelamentoConteudo">
+      <p class="sub">Carregando os detalhes da reserva...</p>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== CONFIGURAÇÃO =====
 // Cole aqui a URL do seu Apps Script (Implantar > Nova implantação > App da Web), terminando em /exec
-const API_URL = "https://script.google.com/macros/s/AKfycbzE4fE7QczZA79q5e5J2btojqdSSJfOBBDJAVFB4irAMb-SAFtl0RwPWdfcQlyttFo-PA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzNLfHAfFy6gOVcoR9RXG5UZh-TSZxzKnSpHiH6ONFqR5UNVWzo6o2uYfr_4Nyarf3IsQ/exec";
 
 const SALAS = ["Laboratório de Informática", "Laboratório Maker"];
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -203,6 +213,7 @@ const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","ag
 let semanaAtualInicio = segundaDaSemana(new Date());
 let dadosSemana = null;
 let reservaSelecionada = { sala: null, data: null, blocos: [] };
+let diaModalAtual = null;
 
 function escapeHtml(str){
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -345,6 +356,7 @@ function renderizarSalas(){
 
 // ===== MODAL RESERVA NORMAL =====
 function abrirModalReserva(sala, dia, blocoInicial){
+  diaModalAtual = dia;
   reservaSelecionada = { sala, data: dia.data, blocos: [] };
   document.getElementById("reservaTitulo").textContent = sala + " · " + dia.diaSemana + " " + dia.data;
   document.getElementById("reservaErro").style.display = "none";
@@ -412,7 +424,26 @@ document.getElementById("reservaConfirmar").onclick = async () => {
     });
     const json = await resp.json();
     if(json && json.ok === false){
-      erroEl.textContent = json.message || "Não foi possível reservar."; erroEl.style.display="block";
+      const blocoConflito = diaModalAtual ? diaModalAtual.blocos.find(b => json.message && json.message.includes(b.bloco)) : null;
+      if(blocoConflito){
+        // remove só o bloco em conflito da seleção e marca ele como indisponível, mantendo os demais selecionados
+        const idx = reservaSelecionada.blocos.indexOf(blocoConflito.bloco);
+        if(idx >= 0) reservaSelecionada.blocos.splice(idx, 1);
+        const botoes = document.querySelectorAll("#blocosGridReserva button");
+        botoes.forEach(b => {
+          if(b.textContent.trim() === blocoConflito.bloco){
+            b.classList.remove("selecionado");
+            b.classList.add("indisponivel");
+            b.disabled = true;
+            b.innerHTML = blocoConflito.bloco + "<br><span style='font-size:10px;font-weight:400;'>Reservado agora</span>";
+          }
+        });
+        atualizarContador();
+        erroEl.textContent = "O horário " + blocoConflito.bloco + " acabou de ser reservado por outra pessoa. Os demais horários selecionados continuam prontos — confirme novamente se quiser seguir com eles.";
+        erroEl.style.display = "block";
+      } else {
+        erroEl.textContent = json.message || "Não foi possível reservar."; erroEl.style.display="block";
+      }
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       return;
     }
@@ -552,7 +583,82 @@ document.getElementById("btnProximaSemana").onclick = () => {
   carregarSemana();
 };
 
+// ===== CANCELAMENTO (vindo do link do e-mail: ?cancelar=PROTOCOLO) =====
+async function abrirModalCancelamento(protocolo){
+  const overlay = document.getElementById("overlayCancelamento");
+  const conteudo = document.getElementById("cancelamentoConteudo");
+  overlay.classList.add("aberto");
+  conteudo.innerHTML = "<p class='sub'>Carregando os detalhes da reserva...</p>";
+
+  try{
+    const resp = await fetch(API_URL + "?action=cancelarInfo&protocolo=" + encodeURIComponent(protocolo));
+    const json = await resp.json();
+    if(!json.ok){
+      conteudo.innerHTML = "<p class='erro' style='display:block;'>"+escapeHtml(json.message || "Não foi possível encontrar esta reserva.")+"</p>"+
+        "<div class='acoes'><button class='confirmar' id='cancelamentoFechar'>Ir para a agenda</button></div>";
+      document.getElementById("cancelamentoFechar").onclick = () => fecharModalCancelamento_(false);
+      return;
+    }
+    const resumo = json.itens.map(it => "• "+it.sala+" — "+it.data+" — "+it.bloco).join("<br>");
+    conteudo.innerHTML =
+      "<p class='sub'>Tem certeza que deseja cancelar esta reserva?</p>"+
+      "<div style='background:var(--fundo); border:1px solid var(--borda); border-radius:8px; padding:12px; font-size:14px; margin-bottom:14px;'>"+resumo+"</div>"+
+      "<div class='acoes'><button id='cancelamentoManter'>Não, manter</button><button class='confirmar' id='cancelamentoConfirmar'>Sim, cancelar</button></div>";
+    document.getElementById("cancelamentoManter").onclick = () => fecharModalCancelamento_(false);
+    document.getElementById("cancelamentoConfirmar").onclick = () => confirmarCancelamento_(protocolo);
+  }catch(err){
+    conteudo.innerHTML = "<p class='erro' style='display:block;'>Erro de conexão. Tente novamente pelo link do e-mail.</p>"+
+      "<div class='acoes'><button class='confirmar' id='cancelamentoFechar'>Ir para a agenda</button></div>";
+    document.getElementById("cancelamentoFechar").onclick = () => fecharModalCancelamento_(false);
+  }
+}
+
+async function confirmarCancelamento_(protocolo){
+  const conteudo = document.getElementById("cancelamentoConteudo");
+  conteudo.innerHTML = "<p class='sub'><span class='spinner' style='border-color:rgba(26,95,168,.3); border-top-color:var(--azul);'></span>Cancelando...</p>";
+  try{
+    const resp = await fetch(API_URL + "?action=cancelarConfirmar&protocolo=" + encodeURIComponent(protocolo));
+    const json = await resp.json();
+    if(json && json.ok === false){
+      conteudo.innerHTML = "<p class='msg-ok' style='display:block; background:#F6C2C2; border-color:#A83232; color:#5c1414;'>"+escapeHtml(json.message)+"</p>"+
+        "<div class='acoes'><button class='confirmar' id='cancelamentoFechar'>Ir para a agenda</button></div>";
+      document.getElementById("cancelamentoFechar").onclick = () => fecharModalCancelamento_(true);
+    } else {
+      mostrarSucessoCancelamento_();
+    }
+  }catch(err){
+    mostrarSucessoCancelamento_(); // a ação já executa no servidor mesmo se a resposta falhar em chegar
+  }
+}
+
+function mostrarSucessoCancelamento_(){
+  const conteudo = document.getElementById("cancelamentoConteudo");
+  conteudo.innerHTML = "<p class='msg-ok' style='display:block;'>✔ Reserva cancelada com sucesso. O horário já está liberado.</p>"+
+    "<div class='acoes'><button class='confirmar' id='cancelamentoFechar'>Ir para a agenda</button></div>";
+  document.getElementById("cancelamentoFechar").onclick = () => fecharModalCancelamento_(true);
+}
+
+function fecharModalCancelamento_(atualizarAgenda){
+  document.getElementById("overlayCancelamento").classList.remove("aberto");
+  const url = new URL(window.location.href);
+  url.searchParams.delete("cancelar");
+  window.history.replaceState({}, "", url.toString());
+  if(atualizarAgenda) carregarSemana();
+}
+
+const parametrosUrl = new URLSearchParams(window.location.search);
+if(parametrosUrl.get("cancelar")){
+  abrirModalCancelamento(parametrosUrl.get("cancelar"));
+}
+
 carregarSemana();
+
+// Atualiza a agenda sozinha em segundo plano, sem recarregar a página,
+// pra refletir reservas feitas em outro aparelho. Pula se algum pop-up estiver aberto.
+setInterval(() => {
+  const algumModalAberto = document.querySelector(".overlay.aberto") !== null;
+  if(!algumModalAberto){ carregarSemana(); }
+}, 30000);
 </script>
 </body>
 </html>
