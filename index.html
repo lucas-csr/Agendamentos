@@ -135,6 +135,10 @@
       <label for="reservaDisciplina">Disciplina/Turma</label>
       <input type="text" id="reservaDisciplina" placeholder="Ex: Matemática - 7ºA">
     </div>
+    <div class="campo">
+      <label for="reservaEmail">E-mail de contato</label>
+      <input type="email" id="reservaEmail" placeholder="nome@escola.com.br">
+    </div>
     <p class="erro" id="reservaErro" style="display:none;"></p>
     <p class="msg-ok" id="reservaOk" style="display:none;"></p>
     <div class="acoes">
@@ -189,7 +193,7 @@
 <script>
 // ===== CONFIGURAÇÃO =====
 // Cole aqui a URL do seu Apps Script (Implantar > Nova implantação > App da Web), terminando em /exec
-const API_URL = "https://script.google.com/macros/s/AKfycbweHkdTCp208dr_mxq38Rs7OUoFKuRwYEyod1NZ6zzklC06UTjfsiPcyTcV-vjCs7yt4A/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwrs9HPJRHQHqgwwhie2uxHjc4sq7EqFDy49Lis6LE-OVZOEwEFSeKrXoQnC0sg9fZnug/exec";
 
 const SALAS = ["Laboratório de Informática", "Laboratório Maker"];
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -319,6 +323,7 @@ function abrirModalReserva(sala, dia, blocoInicial){
   document.getElementById("reservaOk").style.display = "none";
   document.getElementById("reservaNome").value = "";
   document.getElementById("reservaDisciplina").value = "";
+  document.getElementById("reservaEmail").value = "";
 
   const grid = document.getElementById("blocosGridReserva");
   grid.innerHTML = "";
@@ -346,17 +351,22 @@ function abrirModalReserva(sala, dia, blocoInicial){
 function atualizarContador(){
   document.getElementById("contadorReserva").textContent = reservaSelecionada.blocos.length + " horários selecionados";
 }
+
+
 document.getElementById("reservaCancelar").onclick = () => document.getElementById("overlayReserva").classList.remove("aberto");
 
 document.getElementById("reservaConfirmar").onclick = async () => {
   const nome = document.getElementById("reservaNome").value.trim();
   const disciplina = document.getElementById("reservaDisciplina").value.trim();
+  const email = document.getElementById("reservaEmail").value.trim();
   const erroEl = document.getElementById("reservaErro");
   const btn = document.getElementById("reservaConfirmar");
   erroEl.style.display = "none";
   if(reservaSelecionada.blocos.length === 0){ erroEl.textContent = "Selecione ao menos um horário."; erroEl.style.display="block"; return; }
   if(!nome){ erroEl.textContent = "Informe seu nome."; erroEl.style.display="block"; return; }
   if(!disciplina){ erroEl.textContent = "Informe a disciplina/turma."; erroEl.style.display="block"; return; }
+  if(!email){ erroEl.textContent = "Informe seu e-mail."; erroEl.style.display="block"; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ erroEl.textContent = "Informe um e-mail válido."; erroEl.style.display="block"; return; }
 
   const textoOriginal = btn.textContent;
   btn.disabled = true;
@@ -368,7 +378,7 @@ document.getElementById("reservaConfirmar").onclick = async () => {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "reservar", sala: reservaSelecionada.sala, data: reservaSelecionada.data,
-        blocos: reservaSelecionada.blocos, professor: nome, disciplina: disciplina
+        blocos: reservaSelecionada.blocos, professor: nome, disciplina: disciplina, email: email
       })
     });
     const json = await resp.json();
@@ -377,21 +387,21 @@ document.getElementById("reservaConfirmar").onclick = async () => {
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       return;
     }
-    document.getElementById("reservaOk").textContent = "Reserva confirmada!";
+    document.getElementById("reservaOk").textContent = "Reserva confirmada! Você vai receber um e-mail com os detalhes e o link de cancelamento.";
     document.getElementById("reservaOk").style.display = "block";
     setTimeout(() => {
       document.getElementById("overlayReserva").classList.remove("aberto");
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       carregarSemana();
-    }, 600);
+    }, 1400);
   }catch(err){
-    document.getElementById("reservaOk").textContent = "Reserva confirmada!";
+    document.getElementById("reservaOk").textContent = "Reserva confirmada! Você vai receber um e-mail com os detalhes e o link de cancelamento.";
     document.getElementById("reservaOk").style.display = "block";
     setTimeout(() => {
       document.getElementById("overlayReserva").classList.remove("aberto");
       btn.disabled = false; document.getElementById("reservaCancelar").disabled = false; btn.textContent = textoOriginal;
       carregarSemana();
-    }, 600);
+    }, 1400);
   }
 };
 
