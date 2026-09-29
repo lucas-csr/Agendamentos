@@ -102,6 +102,21 @@
 </head>
 <body>
 
+<!-- Portão de senha: bloqueia o acesso até validar com o Apps Script -->
+<div class="overlay aberto" id="overlaySenha" style="z-index:50;">
+  <div class="modal" style="max-width:340px; text-align:center;">
+    <h2 style="text-align:center;">Agendamento dos Laboratórios</h2>
+    <p class="sub" style="text-align:center;">Digite a senha de acesso</p>
+    <div class="campo" style="text-align:left;">
+      <input type="password" id="inputSenha" placeholder="Senha">
+    </div>
+    <p class="erro" id="senhaErro" style="display:none;"></p>
+    <div class="acoes">
+      <button class="confirmar" id="btnEntrar" style="width:100%;">Entrar</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-conteudo">
     <div>
@@ -113,6 +128,18 @@
 </header>
 
 <main>
+  <div class="campo" style="max-width:420px; margin:0 auto 14px;">
+    <label for="seletorSala">Sala</label>
+    <div style="position:relative;">
+      <select id="seletorSala" style="width:100%; padding:12px 40px 12px 14px; border-radius:10px; border:1.5px solid var(--azul); font-size:15px; font-weight:700; color:var(--azul); background:var(--azul-suave); appearance:none; -webkit-appearance:none; cursor:pointer;">
+        <option value="Laboratório de Informática">💻 Laboratório de Informática</option>
+        <option value="Laboratório Maker">🛠️ Laboratório Maker</option>
+        <option value="TODAS">📋 Ver as duas salas</option>
+      </select>
+      <span style="position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--azul); pointer-events:none;">▼</span>
+    </div>
+  </div>
+
   <div class="weeknav">
     <button id="btnSemanaAnterior" aria-label="Semana anterior">&#8592;</button>
     <span id="labelSemana">carregando...</span>
@@ -231,7 +258,7 @@
 <script>
 // ===== CONFIGURAÇÃO =====
 // Cole aqui a URL do seu Apps Script (Implantar > Nova implantação > App da Web), terminando em /exec
-const API_URL = "https://script.google.com/macros/s/AKfycbzNLfHAfFy6gOVcoR9RXG5UZh-TSZxzKnSpHiH6ONFqR5UNVWzo6o2uYfr_4Nyarf3IsQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzgHT8fhAkixtZgiBWj2erVUbAYXm4e3o5zU9r2ouiJJA2ELceg0dkaU_QU50ptVa8Ymw/exec";
 
 const SALAS = ["Laboratório de Informática", "Laboratório Maker"];
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -280,13 +307,15 @@ function formatarLabelSemana(inicio){
   return inicio.getDate()+" de "+MESES[inicio.getMonth()]+" a "+fim.getDate()+" de "+MESES[fim.getMonth()];
 }
 
+let SENHA = sessionStorage.getItem("agendamento_senha") || "";
+
 async function carregarSemana(silencioso){
   document.getElementById("labelSemana").textContent = formatarLabelSemana(semanaAtualInicio);
   if(!silencioso){
     document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
   }
   try{
-    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio));
+    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio)) + "&senha=" + encodeURIComponent(SENHA);
     const resp = await fetch(url);
     const json = await resp.json();
     if(!json.ok){ throw new Error(json.message || "Erro ao carregar."); }
@@ -304,7 +333,10 @@ async function carregarSemana(silencioso){
 function renderizarSalas(){
   const container = document.getElementById("salasContainer");
   container.innerHTML = "";
-  SALAS.forEach(sala => {
+  const selecao = document.getElementById("seletorSala").value;
+  const salasParaExibir = selecao === "TODAS" ? SALAS : [selecao];
+  container.style.gridTemplateColumns = salasParaExibir.length === 1 ? "1fr" : "";
+  salasParaExibir.forEach(sala => {
     const dias = dadosSemana[sala];
     const wrap = document.createElement("div");
 
@@ -402,7 +434,7 @@ function abrirModalReserva(sala, dia, blocoInicial){
     const btn = document.createElement("button");
     const passou = b.status === "livre" && blocoJaPassou(dia.data, b.bloco);
     if(b.status === "ocupado" || passou){
-      btn.innerHTML = b.bloco + (b.professor ? "<br><span style='font-size:10px;font-weight:400;'>"+escapeHtml(b.professor)+"</span>" : (passou ? "<br><span style='font-size:10px;font-weight:400;'>Passou</span>" : ""));
+      btn.innerHTML = b.bloco + (b.professor ? "<br><span style='font-size:10px;font-weight:400;'>"+escapeHtml(b.professor)+"</span>" + (b.disciplina ? "<br><span style='font-size:9px;font-weight:400;color:#888;'>"+escapeHtml(b.disciplina)+"</span>" : "") : (passou ? "<br><span style='font-size:10px;font-weight:400;'>Passou</span>" : ""));
       btn.classList.add("indisponivel");
       btn.disabled = true;
     } else {
@@ -450,7 +482,7 @@ document.getElementById("reservaConfirmar").onclick = async () => {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "reservar", sala: reservaSelecionada.sala, data: reservaSelecionada.data,
-        blocos: reservaSelecionada.blocos, professor: nome, disciplina: disciplina, email: email
+        blocos: reservaSelecionada.blocos, professor: nome, disciplina: disciplina, email: email, senha: SENHA
       })
     });
     const json = await resp.json();
@@ -521,7 +553,7 @@ async function carregarBlocosOcupadosEspecial(){
 
   grid.innerHTML = "<p style='font-size:12px;color:#888;'>Carregando...</p>";
   try{
-    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(inicioDaSemana));
+    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(inicioDaSemana)) + "&senha=" + encodeURIComponent(SENHA);
     const resp = await fetch(url);
     const json = await resp.json();
     const diasDaSala = json.salas[salaSel];
@@ -579,7 +611,7 @@ document.getElementById("especialConfirmar").onclick = async () => {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "solicitar", sala, data: dataBR, blocos: especialSelecionados,
-        professor: nome, disciplina: disciplina, email: email
+        professor: nome, disciplina: disciplina, email: email, senha: SENHA
       })
     });
     const json = await resp.json();
@@ -605,6 +637,10 @@ document.getElementById("especialConfirmar").onclick = async () => {
 };
 
 // ===== NAVEGAÇÃO DE SEMANA =====
+document.getElementById("seletorSala").onchange = () => {
+  if(dadosSemana) renderizarSalas();
+};
+
 document.getElementById("btnIrParaData").onclick = () => {
   document.getElementById("inputIrParaData").value = "";
   document.getElementById("overlayData").classList.add("aberto");
@@ -691,19 +727,61 @@ function fecharModalCancelamento_(atualizarAgenda){
   if(atualizarAgenda) carregarSemana();
 }
 
-const parametrosUrl = new URLSearchParams(window.location.search);
-if(parametrosUrl.get("cancelar")){
-  abrirModalCancelamento(parametrosUrl.get("cancelar"));
+function iniciarAgendaAutenticada_(){
+  document.getElementById("overlaySenha").classList.remove("aberto");
+  carregarSemana();
+  setInterval(() => {
+    const algumModalAberto = document.querySelector(".overlay.aberto") !== null;
+    if(!algumModalAberto){ carregarSemana(true); }
+  }, 60000);
 }
 
-carregarSemana();
+async function tentarEntrar_(){
+  const senhaDigitada = document.getElementById("inputSenha").value;
+  const erroEl = document.getElementById("senhaErro");
+  const btn = document.getElementById("btnEntrar");
+  erroEl.style.display = "none";
+  if(!senhaDigitada){ erroEl.textContent = "Digite a senha."; erroEl.style.display = "block"; return; }
 
-// Atualiza a agenda sozinha em segundo plano, sem recarregar a página,
-// pra refletir reservas feitas em outro aparelho. Pula se algum pop-up estiver aberto.
-setInterval(() => {
-  const algumModalAberto = document.querySelector(".overlay.aberto") !== null;
-  if(!algumModalAberto){ carregarSemana(true); }
-}, 60000);
+  btn.disabled = true;
+  btn.innerHTML = "<span class='spinner' style='border-color:rgba(255,255,255,.4); border-top-color:#fff;'></span>Entrando...";
+  try{
+    const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio)) + "&senha=" + encodeURIComponent(senhaDigitada);
+    const resp = await fetch(url);
+    const json = await resp.json();
+    if(!json.ok){
+      erroEl.textContent = "Senha incorreta."; erroEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "Entrar";
+      return;
+    }
+    SENHA = senhaDigitada;
+    sessionStorage.setItem("agendamento_senha", SENHA);
+    dadosSemana = json.salas;
+    document.getElementById("overlaySenha").classList.remove("aberto");
+    document.getElementById("labelSemana").textContent = formatarLabelSemana(semanaAtualInicio);
+    renderizarSalas();
+    setInterval(() => {
+      const algumModalAberto = document.querySelector(".overlay.aberto") !== null;
+      if(!algumModalAberto){ carregarSemana(true); }
+    }, 60000);
+  }catch(err){
+    erroEl.textContent = "Erro de conexão. Tente novamente."; erroEl.style.display = "block";
+    btn.disabled = false; btn.textContent = "Entrar";
+  }
+}
+document.getElementById("btnEntrar").onclick = tentarEntrar_;
+document.getElementById("inputSenha").addEventListener("keydown", (ev) => { if(ev.key === "Enter") tentarEntrar_(); });
+
+const parametrosUrl = new URLSearchParams(window.location.search);
+if(parametrosUrl.get("cancelar")){
+  // link vindo do e-mail: não exige a senha do sistema, só o protocolo (já é a credencial dessa reserva)
+  document.getElementById("overlaySenha").classList.remove("aberto");
+  abrirModalCancelamento(parametrosUrl.get("cancelar"));
+} else if(SENHA){
+  // já tinha entrado antes nesta aba/sessão do navegador
+  iniciarAgendaAutenticada_();
+} 
+// sem SENHA e sem link de cancelamento: fica parado na tela de senha até o professor digitar
 </script>
 </body>
 </html>
