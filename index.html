@@ -296,10 +296,14 @@ function formatarLabelSemana(inicio){
 // Precisa ser o mesmo valor configurado na propriedade TOKEN_SISTEMA do Apps Script.
 const TOKEN_ACESSO = "qJyfZHOs0EVA0FHcAxlYjY5pcKb2wOW8";
 
-async function carregarSemana(){
-  document.getElementById("labelSemana").textContent = formatarLabelSemana(semanaAtualInicio);
-  if(dadosSemana === null){
+async function carregarSemana(mostrarCarregando){
+  const labelEl = document.getElementById("labelSemana");
+  const textoLabel = formatarLabelSemana(semanaAtualInicio);
+  if(dadosSemana === null || mostrarCarregando){
+    labelEl.textContent = textoLabel;
     document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
+  } else {
+    labelEl.innerHTML = textoLabel + " <span class='spinner' style='border-color:rgba(26,95,168,.25); border-top-color:var(--azul); width:12px; height:12px;'></span>";
   }
   try{
     const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio)) + "&token=" + encodeURIComponent(TOKEN_ACESSO);
@@ -308,7 +312,9 @@ async function carregarSemana(){
     if(!json.ok){ throw new Error(json.message || "Erro ao carregar."); }
     dadosSemana = json.salas;
     renderizarSalas();
+    labelEl.textContent = textoLabel;
   }catch(err){
+    labelEl.textContent = textoLabel;
     if(dadosSemana === null){
       document.getElementById("salasContainer").innerHTML =
         "<p style='text-align:center;color:#B83A3A;'>Não foi possível carregar os horários. Verifique a conexão e a configuração do API_URL.</p>";
@@ -639,16 +645,16 @@ document.getElementById("inputIrParaData").onchange = (ev) => {
   const [y,m,d] = valor.split("-").map(Number);
   semanaAtualInicio = segundaDaSemana(new Date(y, m-1, d));
   document.getElementById("overlayData").classList.remove("aberto");
-  carregarSemana();
+  carregarSemana(true);
 };
 
 document.getElementById("btnSemanaAnterior").onclick = () => {
   semanaAtualInicio.setDate(semanaAtualInicio.getDate() - 7);
-  carregarSemana();
+  carregarSemana(true);
 };
 document.getElementById("btnProximaSemana").onclick = () => {
   semanaAtualInicio.setDate(semanaAtualInicio.getDate() + 7);
-  carregarSemana();
+  carregarSemana(true);
 };
 
 // ===== CANCELAMENTO (vindo do link do e-mail: ?cancelar=PROTOCOLO) =====
