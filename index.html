@@ -302,9 +302,8 @@ async function carregarSemana(mostrarCarregando){
   if(dadosSemana === null || mostrarCarregando){
     labelEl.textContent = textoLabel;
     document.getElementById("salasContainer").innerHTML = "<p style='text-align:center;color:#888;'>Carregando...</p>";
-  } else {
-    labelEl.innerHTML = textoLabel + " <span class='spinner' style='border-color:rgba(26,95,168,.25); border-top-color:var(--azul); width:12px; height:12px;'></span>";
   }
+  // atualização silenciosa em segundo plano: nenhum indicador visual, só troca os dados quando chegam
   try{
     const url = API_URL + "?action=semana&inicio=" + encodeURIComponent(formatarBR(semanaAtualInicio)) + "&token=" + encodeURIComponent(TOKEN_ACESSO);
     const resp = await fetch(url);
